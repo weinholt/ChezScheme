@@ -823,7 +823,28 @@ static I32 s_chdir(const char *inpath) {
 
 #ifdef GETWD
 static char *s_getwd() {
+#ifdef PATH_MAX
   return GETWD((char *)&BVIT(S_bytevector(PATH_MAX), 0));
+#else
+  size_t PATH_MAX = 128;
+  char *path;
+
+  for (path = NULL; path == NULL; PATH_MAX *= 2) {
+      path = GETWD((char *)&BVIT(S_bytevector(PATH_MAX), 0));
+
+      if (path == NULL && errno != ERANGE) {
+          ptr msg = S_strerror(errno);
+
+          if (msg != Sfalse) {
+              S_error1("s_getwd", "~a", msg);
+          } else {
+              S_error("s_getwd", "getwd failed");
+          }
+      }
+  }
+
+  return path;
+#endif
 }
 #endif /* GETWD */
 
